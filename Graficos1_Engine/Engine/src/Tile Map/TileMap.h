@@ -17,11 +17,14 @@ public:
 	void setTileDimensions(float tileWidth, float tileHeigth);
 
 	void setTexture(std::string path);
-	void draw();
+	void Draw();
 
 	bool importTileMap(std::string filePath);
 	void checkCollision(Entity2D* object);
 
+	void scaleTiles(float factor);
+	void translateTiles(float x, float y);
+	Vector2 getConvertedPos(float x, float y);
 private:
 	std::vector<Tile> tiles;
 	std::vector<Tile**> _tileMapGrid;
@@ -31,6 +34,8 @@ private:
 	int _width;
 	int _height;
 
+	float localScale;
+	
 	float _tileWidth;
 	float _tileHeight;
 
@@ -39,9 +44,6 @@ private:
 
 	int _imageWidth;
 	int _imageHeight;
-
-	float convertedPosX;
-	float convertedPosY;
 
 	std::string _imagePath;
 };

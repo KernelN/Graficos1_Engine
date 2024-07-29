@@ -6,6 +6,13 @@ Tile::Tile()
 	_walkable = false;
 }
 
+Tile::Tile(unsigned _imageID, int imgSize[2], int spriteQuantity, int spriteNumber)
+			: Sprite(_imageID, imgSize, spriteQuantity, spriteNumber)
+{
+	_id = 0;
+	_walkable = false;	
+}
+
 Tile::~Tile() { }
 
 bool Tile::isWalkable() 
@@ -27,4 +34,12 @@ unsigned int Tile::getId()
 void Tile::setId(unsigned int id) 
 {
 	_id = id;
+}
+unsigned int Tile::getGid()
+{
+	return _gid;
+}
+void Tile::setGid(unsigned int gid)
+{
+	_gid = gid;
 }

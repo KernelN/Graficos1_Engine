@@ -114,25 +114,25 @@ Sprite::Sprite(const std::string& path, int spriteQuantity, int spriteNumber)
 
 Sprite::Sprite(unsigned int _imageID, int imgSize[2], int spriteQuantity, int spriteNumber)
 {
-	rendererID = 0;
+	rendererID = _imageID+1;
 	imageID = _imageID;
 	imgWidth = imgSize[0];
 	imgHeight = imgSize[1];
 	bitsPerPixel = 0;
+	spriteQty = spriteQuantity;
 
-	float widthHeightRatio = imgWidth / imgHeight;
-	float adjustedX = 0.5f * widthHeightRatio;
+	Scale(GetWidth(), GetHeight());
 
 	float vertexPos[4][2] =
 	{
-		{-adjustedX, -1},
-		{adjustedX, -1},
-		{adjustedX, 1},
-		{-adjustedX, 1}
+		{-1, -1},
+		{1, -1},
+		{1, 1},
+		{-1, 1}
 	};
-
+	
 	float leftX = (float)spriteNumber / spriteQuantity;
-	float rightX = (float)(spriteNumber + 1) / spriteQuantity;
+	float rightX = (float)(spriteNumber+1) / spriteQuantity;
 
 	float uvPos[4][2] =
 	{
@@ -159,12 +159,11 @@ Sprite::Sprite(unsigned int _imageID, int imgSize[2], int spriteQuantity, int sp
 		}
 	}
 
+	Renderer* tempRenderer = RendererSingleton::GetRenderer();
+	*vBuffer = tempRenderer->GetNewVertexBuffer(vertices, 4 * (sizeof(float) * 2 + sizeof(float) * 2));
+	*iBuffer = tempRenderer->GetNewIndexBuffer(indices, 6);
+
 	Bind();
-
-	*vBuffer = RendererSingleton::GetRenderer()->GetNewVertexBuffer(vertices, 4 * (sizeof(float) * 2 + sizeof(float) * 2));
-	*iBuffer = RendererSingleton::GetRenderer()->GetNewIndexBuffer(indices, 6);
-
-	UnBind();
 }
 
 Sprite::~Sprite()
@@ -175,7 +174,7 @@ Sprite::~Sprite()
 		delete anim;
 }
 
-void Sprite::SetSprite(unsigned int _imageID, int imgSize[2], float spriteSize[2], float uv[2])
+void Sprite::SetSprite(unsigned int _imageID, int imgSize[2], float spriteSize[2], float uv[2], float uvSize[2])
 {
 	rendererID = _imageID+1;
 	imageID = _imageID;
@@ -183,6 +182,8 @@ void Sprite::SetSprite(unsigned int _imageID, int imgSize[2], float spriteSize[2
 	imgHeight = imgSize[1];
 	width = spriteSize[0];
 	height = spriteSize[1];
+
+	Scale(width, height);
 
 	float vertexPos[4][2] =
 	{
@@ -194,9 +195,9 @@ void Sprite::SetSprite(unsigned int _imageID, int imgSize[2], float spriteSize[2
 	float uvPos[4][2] =
 	{
 		{uv[0], uv[1]}, //bot left
-		{uv[0] + width, uv[1]}, //bot right
-		{uv[0] + width, uv[1] + height}, //top right
-		{uv[0], uv[1] + height}  //top left
+		{uv[0] + uvSize[0], uv[1]}, //bot right
+		{uv[0] + uvSize[0], uv[1] + uvSize[1]}, //top right
+		{uv[0], uv[1] + uvSize[1]}  //top left
 	};
 	unsigned int indices[6] =
 	{
@@ -337,7 +338,7 @@ void Sprite::UnBind()
 	RendererSingleton::GetRenderer()->UnbindTexture();
 }
 
-void Sprite::Draw()
+void Sprite::Draw(bool bind)
 {
 	Bind();
 	RendererSingleton::GetRenderer()->Draw(*vBuffer, *iBuffer, modelID);

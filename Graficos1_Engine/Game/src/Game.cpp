@@ -50,7 +50,7 @@ Game::Game()
 
     tilemap = new TileMap();
     tilemap->importTileMap("res/tilemap/tilemap.tmx");
-
+    tilemap->scaleTiles(20);
 
     scaleMod = 1;
 }
@@ -127,6 +127,7 @@ void Game::OnLoop()
 
 void Game::Draw()
 {
+    static_cast<TileMap*>(tilemap)->Draw();
     static_cast<Sprite*>(player)->Draw();
     static_cast<Sprite*>(enemy)->Draw();
 }

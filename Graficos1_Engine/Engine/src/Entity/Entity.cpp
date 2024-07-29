@@ -35,6 +35,17 @@ Entity::~Entity()
 	}
 }
 
+void Entity::SetTranslation(float x, float y)
+{
+	lastTranslation.x = x - translation.x;
+	lastTranslation.y = y - translation.y;
+
+	translation.x = x;
+	translation.y = y;
+
+	UpdateModel(true);
+}
+
 void Entity::Translate(float x, float y)
 {
 	translation.x += x;

@@ -28,11 +28,11 @@ public:
 	Sprite(unsigned int _imageID, int imgSize[2], int spriteQuantity, int spriteNumber);
 	~Sprite();
 
-	void SetSprite(unsigned int _imageID, int imgSize[2], float spriteSize[2], float uv[2]);
+	void SetSprite(unsigned int _imageID, int imgSize[2], float spriteSize[2], float uv[2], float uvSize[2]);
 	void ChangeSprite(int spriteQuantity, int spriteNumber);
 	void SetAnim(Animation* _anim);
 	void UpdateFrame();
-	void Draw();
+	void Draw(bool bind = true);
 	unsigned int GetImageID();
 	inline int GetSpriteQty() const { return spriteQty; }
 	inline int GetImgWidth() const { return imgWidth; }

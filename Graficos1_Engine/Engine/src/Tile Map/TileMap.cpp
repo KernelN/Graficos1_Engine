@@ -11,6 +11,8 @@ TileMap::TileMap()
 	_width = -1;
 	_height = -1;
 
+	localScale = 1;
+
 	_tileWidth = -1;
 	_tileHeight = -1;
 
@@ -19,9 +21,6 @@ TileMap::TileMap()
 
 	_imageWidth = -1;
 	_imageHeight = -1;
-
-	convertedPosX = -1;
-	convertedPosY = -1;
 }
 
 TileMap::~TileMap() {}
@@ -42,7 +41,8 @@ void TileMap::setMapTileId(int layer, unsigned int uiCol, unsigned int uiRow, un
 	_tileMapGrid[layer][uiCol][uiRow] = tile(uiId);
 }
 
-void TileMap::setTile(const Tile& rkTile) {
+void TileMap::setTile(const Tile& rkTile)
+{
 	tiles.push_back(rkTile);
 }
 
@@ -69,13 +69,11 @@ void TileMap::setTexture(std::string path) {
 	textureID = rendererID - 1;
 }
 
-void TileMap::draw() {
-	RendererSingleton::GetRenderer()->BindTexture(textureID, rendererID);
-	RendererSingleton::GetRenderer()->SetTexture(textureID);
+void TileMap::Draw() {
+	Renderer* tempRenderer = RendererSingleton::GetRenderer();
+	tempRenderer->BindTexture(textureID, rendererID);
+	tempRenderer->SetTexture(textureID);
 	//rkRenderer.setCurrentTexture(textureID);
-
-	float mapWidth = -(_width * _tileWidth) / 2;
-	float mapHeight = (_height * _tileHeight) / 2;
 
 	for (int i = 0; i < _tileMapGrid.size(); i++)
 	{
@@ -84,37 +82,31 @@ void TileMap::draw() {
 			for (int x = 0; x < _width; x++)
 			{
 				if (_tileMapGrid[i][y][x].getId() == NULL) continue;
-
-				float xTrans = mapWidth + (_tileWidth * x);
-				float yTrans = mapHeight - (_tileHeight * y);
-
-				_tileMapGrid[i][y][x].Translate(xTrans, yTrans);
-				_tileMapGrid[i][y][x].Draw();
+				_tileMapGrid[i][y][x].Draw(false);
 			}
 		}
 	}
+
+	tempRenderer->UnbindTexture();
 }
 
 bool TileMap::importTileMap(std::string filePath) {
-	tinyxml2::XMLDocument tileset; //guarda el documento
+	tinyxml2::XMLDocument tilemap; //guarda el documento
 	tinyxml2::XMLError errorHandler; //guarda el resultado de las funciones
 
-	errorHandler = tileset.LoadFile(filePath.c_str()); //carga el archivo XML
+	errorHandler = tilemap.LoadFile(filePath.c_str()); //carga el archivo XML
 	if (errorHandler == tinyxml2::XML_ERROR_FILE_NOT_FOUND || errorHandler == tinyxml2::XML_ERROR_FILE_COULD_NOT_BE_OPENED) return false;
 
 	// Loading Map element and save Map width, heigth in tiles and width, heigth of Tiles in pixels
-	tinyxml2::XMLElement* mapNode = tileset.FirstChildElement("map");
+	tinyxml2::XMLElement* mapNode = tilemap.FirstChildElement("map");
 	if (mapNode == nullptr)
 		return false;
+	
 	setDimensions(mapNode->FloatAttribute("width"), mapNode->FloatAttribute("height"));				// Get width and heigth for
 	setTileDimensions(mapNode->FloatAttribute("tilewidth"), mapNode->FloatAttribute("tileheight")); // the map and the tiles
 
-
-	int columns = _width;  // Columns of Tiles in the Tileset
-	int rows = _height;
-
 	// Loading Tileset element
-	tinyxml2::XMLDocument tilesheet; //guarda el documento
+	tinyxml2::XMLDocument tilesheet; //guarda el documento source
 
 	std::string tilesetPath = "res/tilemap/";
 	tilesetPath += mapNode->FirstChildElement("tileset")->Attribute("source");
@@ -125,39 +117,31 @@ bool TileMap::importTileMap(std::string filePath) {
 	tinyxml2::XMLElement* pTilesheet = tilesheet.FirstChildElement("tileset");
 	if (pTilesheet == NULL)
 		return false;
-
+	
 	_imagePath = "res/tilemap/";
 	_imagePath += pTilesheet->FirstChildElement("image")->Attribute("source");			// Loading Textures
 	setTexture(_imagePath); //
-
-	// Save the Tiles in the TileMap
+	
+	// Save the Tiles in the TileMap  and set it's position
+	float topLeft[2] = 
+	{ -(_tileWidth * _width) / 2.0f, 
+		(_tileHeight * _height) / 2.0f };
 	float tileX = 0.0f, tileY = 0.0f;
-	int _id = 1;
-	for (int i = 0; i < rows; i++) {
-		for (int j = 0; j < columns; j++) {
-			Tile* newTile = new Tile();;
-
-			int imgSize[2] = { _imageWidth, _imageHeight };
-			float sprtSize[2] = { _tileWidth / _imageWidth, _tileHeight / _imageHeight };
-			float uv[2] = { tileX / _imageWidth, tileY / _imageHeight };
+	int _id = 0;
+	for (int i = 0; i < _height; i++) {
+		for (int j = 0; j < _width; j++) {
+			Tile* newTile = new Tile();
 
 			newTile->setId(_id);
-			newTile->SetSprite(textureID, imgSize, sprtSize, uv);
-			newTile->Scale(_tileWidth, _tileHeight);
 
-			//newTile.setTextureCoordinates(tileX / _imageWidth, tileY / _imageHeight,
-			//	(tileX + _tileWidth) / _imageWidth, tileY / _imageHeight,
-			//	tileX / _imageWidth, (tileY + _tileHeight) / _imageHeight,
-			//	(tileX + _tileWidth) / _imageWidth, (tileY + _tileHeight) / _imageHeight);
-
-			tileX += _tileWidth;
+			newTile->Translate(topLeft[0] + tileX, topLeft[1] - tileY);
 			setTile(*newTile);
 			_id++;
+			tileX += _tileWidth;
 		}
 		tileX = 0;
 		tileY += _tileHeight;
-	}
-
+	}	
 
 	// Loading Layer element
 	tinyxml2::XMLElement* pLayer = mapNode->FirstChildElement("layer");
@@ -173,10 +157,16 @@ bool TileMap::importTileMap(std::string filePath) {
 	tinyxml2::XMLElement* pTileData;
 	
 	unsigned int tileID = 0;
+	int sheetTileCount = pTilesheet->IntAttribute("tilecount");
+	int sheetImgSize[2] = { _imageWidth, _imageHeight };
+	float tileSpriteSize[2] = { _tileWidth, _tileHeight };
+	int sheetColumns = pTilesheet->IntAttribute("columns");
+	float sheetRows = sheetTileCount / (float)sheetColumns;
+	float tileUVSize[2] = { 1.0f / sheetColumns, 1.0f / sheetRows };
 	while (pTile) 
 	{
 		pTileData = pTilesheet->FirstChildElement("tile");
-		unsigned int gid = pTile->IntAttribute("gid") - 1;
+		unsigned int gid = pTile->IntAttribute("gid") - 1; //somewhy gids are offset by 1
 
 		unsigned int i = 0;
 		while (pTileData && i <= gid)
@@ -187,11 +177,30 @@ bool TileMap::importTileMap(std::string filePath) {
 				tinyxml2::XMLElement* pProperty = pTileData->FirstChildElement("properties")->FirstChildElement("property");
 				std::string propertyName = pProperty->Attribute("value");
 
+				//Set gid
+				tiles[tileID].setGid(gid);
+
+				//set walkable
 				if (propertyName == "false")
 					tiles[tileID].walkability(false);
 				else
 					tiles[tileID].walkability(true);
 
+				//set sprite
+				//tengo que:
+				//gettear imgSize
+				//gettear spriteSize (tileWidth y tileHeight)
+				//gettear gid
+				//ver donde esta en X e Y
+				//(lease, dividir gid por tilesheet columns para Y y restarle columns...
+				//(por alguna razon lee de abajo para arriba)
+				int y = sheetColumns - std::ceil(gid / sheetColumns); //round up
+				//... y modulo gid por columns para X)
+				int x = gid % sheetColumns;
+				//calcular uv left bot (x/columnas, y/filas)
+				float uv[2] = { x / (float)sheetColumns, y/sheetRows };
+				tiles[tileID].SetSprite(textureID, sheetImgSize,
+										tileSpriteSize, uv, tileUVSize);
 				break;
 			}
 			else
@@ -228,17 +237,16 @@ bool TileMap::importTileMap(std::string filePath) {
 			pTile = pTilesetData->FirstChildElement("tile");
 			while (pTile)
 			{
-				unsigned int gid = std::atoi(pTile->Attribute("gid")); // tile's id is saved
+				unsigned int gid = std::atoi(pTile->Attribute("gid")); // tile's sheet id is saved
 				tileGids.push_back(gid);
 				pTile = pTile->NextSiblingElement("tile");
 			}
 
-			int gid = 0;
+			int id = 0;
 			for (int y = 0; y < _height; y++) {
 				for (int x = 0; x < _width; x++) {
-					if (tileGids[gid] != 0)
-						setMapTileId(layerCount, y, x, tileGids[gid]);
-					gid++;
+					setMapTileId(layerCount, y, x, id);
+					id++;
 				}
 			}
 
@@ -254,14 +262,13 @@ bool TileMap::importTileMap(std::string filePath) {
 
 void TileMap::checkCollision(Entity2D* object) {
 
-	convertedPosX = object->GetTranslation().x + (_width / 2) * _tileWidth;
-	convertedPosY = object->GetTranslation().y - (_height / 2) * _tileHeight;
+	Vector2 convertedPos = getConvertedPos(object->GetTranslation().x, object->GetTranslation().y);
 
-	int left_tile = convertedPosX / _tileWidth;
-	int right_tile = (convertedPosX + object->GetScale().x) / _tileWidth;
+	int left_tile = convertedPos.x / _tileWidth;
+	int right_tile = (convertedPos.x + object->GetScale().x) / _tileWidth;
 
-	int top_tile = (convertedPosY / _tileHeight) * -1;
-	int bottom_tile = ((convertedPosY - object->GetScale().y) / _tileHeight) * -1; // Se resta porque el eje Y crece hacia arriba
+	int top_tile = (convertedPos.y / _tileHeight) * -1;
+	int bottom_tile = ((convertedPos.y - object->GetScale().y) / _tileHeight) * -1; // Se resta porque el eje Y crece hacia arriba
 
 	if (left_tile < 0)
 		left_tile = 0;
@@ -307,4 +314,49 @@ void TileMap::checkCollision(Entity2D* object) {
 			}
 		}
 	}
+}
+
+void TileMap::scaleTiles(float factor)
+{
+	localScale += factor;
+
+	const float scaleMod = .125f; //weird const I found testing
+	float scaledTileWidth = _tileWidth * localScale * scaleMod;
+	float scaledTileHeight = _tileHeight * localScale * scaleMod;
+	float topLeft[2] =  { -(scaledTileWidth * _width) / 2.0f,
+								(scaledTileHeight * _height) / 2.0f };
+	float tileX = 0.0f, tileY = 0.0f;
+
+	for (int i = 0; i < _tileMapGrid.size(); i++)
+		for (int y = 0; y < _height; y++)
+		{
+			for (int x = 0; x < _width; x++)
+			{
+				_tileMapGrid[i][y][x].SetTranslation(topLeft[0] + tileX,
+														topLeft[1] - tileY);
+				_tileMapGrid[i][y][x].Scale(factor, factor);
+				tileX += scaledTileWidth;
+			}
+			tileX = 0;
+			tileY += scaledTileHeight;
+		}	
+}
+
+void TileMap::translateTiles(float x, float y)
+{
+	for (int i = 0; i < _tileMapGrid.size(); i++) {
+		for (int j = 0; j < _height; j++) {
+			for (int k = 0; k < _width; k++) {
+				_tileMapGrid[i][j][k].Translate(x, y);
+			}
+		}
+	}
+}
+
+Vector2 TileMap::getConvertedPos(float x, float y)
+{
+	Vector2 pos;
+	pos.x = x + (_width / 2) * _tileWidth;
+	pos.y = y - (_height / 2) * _tileHeight;
+	return pos;
 }

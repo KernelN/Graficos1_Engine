@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tileset version="1.9" tiledversion="1.9.2" name="Game Boy GBC - The Legend of Zelda Links Awakening DX - Overworld Tileset" tilewidth="17" tileheight="17" tilecount="600" columns="24">
+<tileset version="1.10" tiledversion="1.10.2" name="Game Boy GBC - The Legend of Zelda Links Awakening DX - Overworld Tileset" tilewidth="17" tileheight="17" tilecount="600" columns="24" objectalignment="topleft">
  <image source="Game Boy GBC - The Legend of Zelda Links Awakening DX - Overworld Tileset.png" width="410" height="427"/>
  <tile id="0">
   <properties>

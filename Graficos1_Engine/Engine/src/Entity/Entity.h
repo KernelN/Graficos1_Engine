@@ -10,6 +10,8 @@ class DLLEXPORT Entity
 public:
 	Entity();
 	~Entity();
+	void SetTranslation(float x, float y);
+
 	void Translate(float x, float y);
 	void Rotate(float angle);
 	void Scale(float x, float y);

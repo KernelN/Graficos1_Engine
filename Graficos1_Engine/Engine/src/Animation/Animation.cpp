@@ -37,6 +37,25 @@ Animation::Animation(float animLength, unsigned int framesQty, unsigned int firs
 	}
 }
 
+Animation::Animation(float animLength, unsigned int framesQty, unsigned int firstFrame, unsigned int lastFrame, unsigned int framesRow)
+{
+	length = animLength;
+	currentFrame = 0;
+	timer = 0;
+	row = framesRow;
+
+	for (unsigned int i = firstFrame; i <= lastFrame; i++)
+	{
+		//Calculate left and right of frame
+		Vector2 frameCoords;
+		frameCoords.x = (float)i / framesQty;
+		frameCoords.y = (float)(i + 1) / framesQty;
+
+		//Send frame U coordinates to the vector
+		AddFrame(frameCoords);
+	}
+}
+
 Animation::~Animation()
 {
 }

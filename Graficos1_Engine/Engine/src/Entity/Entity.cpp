@@ -68,8 +68,8 @@ void Entity::Rotate(float angle)
 
 void Entity::Scale(float x, float y)
 {
-	scale.x += x;
-	scale.y += y;
+	scale.x *= x;
+	scale.y *= y;
 
 	lastScale.x = x;
 	lastScale.y = y;

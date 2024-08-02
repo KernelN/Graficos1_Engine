@@ -26,21 +26,26 @@ Game::Game()
     };
 
     //player = new Square(s1Colors, true);
-    player = new Sprite("res/link_walk.png", 8, 4);
-    player->Scale(25, 25);
-    player->Translate(0, 0);
+    //player = new Sprite("res/link_walk.png", 8, 4);
+    player = new Sprite("res/link_spritesheet.png", 10, 8, 0, 0);
+    player->Scale(.4f, .4f);
+    player->Translate(0, 5);
 
     //enemy = new Square(s2Colors, true);
-    enemy = new Sprite("res/WolfiesGrowl.png", 5, 0);
-    enemy->Scale(25, 25);
-    enemy->Translate(-150, 0);
+    enemy = new Sprite("res/WolfiesGrowl.png", 5, 1, 0, 0);
+    enemy->Scale(2, 2);
+    enemy->Translate(-150, -10);
 
 
-    float linkWSpeed = 0.4f;
-    linkWRightAnim = new Animation(linkWSpeed, 8, 0, 1);
-    linkWUpAnim = new Animation(linkWSpeed, 8, 2, 3);
-    linkWLeftAnim = new Animation(linkWSpeed, 8, 4, 5);
-    linkWDownAnim = new Animation(linkWSpeed, 8, 6, 7);
+    float linkWSpeed = 0.8f;
+    //linkWRightAnim = new Animation(linkWSpeed, 8, 0, 1);
+    //linkWUpAnim = new Animation(linkWSpeed, 8, 2, 3);
+    //linkWLeftAnim = new Animation(linkWSpeed, 8, 4, 5);
+    //linkWDownAnim = new Animation(linkWSpeed, 8, 6, 7);
+    linkWDownAnim = new Animation(linkWSpeed, 10, 0, 9, 3);
+    linkWLeftAnim = new Animation(linkWSpeed, 10, 0, 9, 2);
+    linkWUpAnim = new Animation(linkWSpeed, 10, 0, 9, 1);
+    linkWRightAnim = new Animation(linkWSpeed, 10, 0, 9, 0);
 
     //Animation* wolfieWalkAnim = new Animation(1, 5);
     Animation* wolfieGrowlAnim = new Animation(1, 5);
@@ -50,7 +55,7 @@ Game::Game()
 
     tilemap = new TileMap();
     tilemap->importTileMap("res/tilemap/tilemap.tmx");
-    tilemap->scaleTiles(20);
+    tilemap->scaleTiles(2.75f);
 
     scaleMod = 1;
 }

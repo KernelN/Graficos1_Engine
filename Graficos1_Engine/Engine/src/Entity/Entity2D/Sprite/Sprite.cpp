@@ -54,14 +54,20 @@ Sprite::Sprite(const std::string& path)
 	Bind();
 }
 
-Sprite::Sprite(const std::string& path, int spriteQuantity, int spriteNumber)
+Sprite::Sprite(const std::string& path, int spriteQuantityX, int spriteQuantityY, int spriteNumber, int _spriteRow)
 {
  	rendererID = 0;
 	filePath = path;
 	imgWidth = 0;
 	imgHeight = 0;
 	bitsPerPixel = 0;
-	spriteQty = spriteQuantity;
+	spriteRow = _spriteRow;
+
+	if (spriteQuantityX < 1) spriteQuantityX = 1;
+	if (spriteQuantityY < 1) spriteQuantityY = 1;
+
+	spriteQtyX = spriteQuantityX;
+	spriteQtyY = spriteQuantityY;
 
 	Renderer* tempRenderer = RendererSingleton::GetRenderer();
 	tempRenderer->GetNewTexture(path, &imgWidth, &imgHeight, &bitsPerPixel, &rendererID);
@@ -76,17 +82,20 @@ Sprite::Sprite(const std::string& path, int spriteQuantity, int spriteNumber)
 		{1, -1},
 		{1, 1},
 		{-1, 1}
-	};
+	};	
+
+	float leftX = (float)spriteNumber / spriteQuantityX;
+	float rightX = (float)(spriteNumber+1) / spriteQuantityX;
 	
-	float leftX = (float)spriteNumber / spriteQuantity;
-	float rightX = (float)(spriteNumber+1) / spriteQuantity;
+	float upY = (float)spriteRow / spriteQuantityY;
+	float botY = (float)(spriteRow+1) / spriteQuantityY;
 
 	float uvPos[4][2] =
 	{
-		{leftX, 0}, //bot left
-		{rightX, 0}, //bot right
-		{rightX, 1}, //top right
-		{leftX, 1}  //top left
+		{leftX, upY}, //top left
+		{rightX, upY}, //top right
+		{rightX, botY}, //bot right
+		{leftX, botY}  //bot left
 	};
 	unsigned int indices[6] =
 	{
@@ -119,7 +128,8 @@ Sprite::Sprite(unsigned int _imageID, int imgSize[2], int spriteQuantity, int sp
 	imgWidth = imgSize[0];
 	imgHeight = imgSize[1];
 	bitsPerPixel = 0;
-	spriteQty = spriteQuantity;
+	spriteQtyX = spriteQuantity;
+	spriteQtyY = 1;
 
 	Scale(GetWidth(), GetHeight());
 
@@ -223,7 +233,7 @@ void Sprite::SetSprite(unsigned int _imageID, int imgSize[2], float spriteSize[2
 	Bind();
 }
 
-void Sprite::ChangeSprite(int spriteQuantity, int spriteNumber)
+void Sprite::ChangeSprite(int spriteQuantity, int spriteRows, int spriteNumberX, int spriteNumberY)
 {
 	float widthHeightRatio = imgWidth / imgHeight;
 	float adjustedX = 0.5f * widthHeightRatio;
@@ -236,15 +246,21 @@ void Sprite::ChangeSprite(int spriteQuantity, int spriteNumber)
 		{-adjustedX, 1}
 	};
 
-	float leftX = (float)spriteNumber / spriteQuantity;
-	float rightX = (float)(spriteNumber + 1) / spriteQuantity;
+	if (spriteQuantity < 1) spriteQuantity = 1;
+	if (spriteRows < 1) spriteRows = 1;
+
+	float leftX = (float)spriteNumberX / spriteQuantity;
+	float rightX = (float)(spriteNumberX + 1) / spriteQuantity;
+
+	float upY = (float)spriteNumberY / spriteRows;
+	float botY = (float)(spriteNumberY + 1) / spriteRows;
 
 	float uvPos[4][2] =
 	{
-		{leftX, 0}, //bot left
-		{rightX, 0}, //bot right
-		{rightX, 1}, //top right
-		{leftX, 1}  //top left
+		{leftX, upY}, //top left
+		{rightX, upY}, //top right
+		{rightX, botY}, //bot right
+		{leftX, botY}  //bot left
 	};
 
 	//float tempVertices[4][4];
@@ -273,6 +289,7 @@ void Sprite::ChangeSprite(int spriteQuantity, int spriteNumber)
 void Sprite::SetAnim(Animation* _anim)
 {
 	anim = _anim;
+	spriteRow = anim->GetRow();
 }
 
 void Sprite::UpdateFrame()
@@ -295,14 +312,19 @@ void Sprite::UpdateFrame()
 	ChangeSprite(uCoords.x, uCoords.y);
 }
 
-void Sprite::ChangeSprite(float leftU, float rightU)
+void Sprite::ChangeSprite(float leftU, float rightU) { ChangeSprite(leftU, rightU, spriteRow); }
+
+void Sprite::ChangeSprite(float leftU, float rightU, int row)
 {
+	float upV = (float)row / spriteQtyY;
+	float botV = (float)(row + 1) / spriteQtyY;
+
 	float uvPos[4][2] =
 	{
-		{leftU, 0}, //bot left
-		{rightU, 0}, //bot right
-		{rightU, 1}, //top right
-		{leftU, 1}  //top left
+		{leftU, upV}, //top left
+		{rightU, upV}, //top right
+		{rightU, botV}, //bot right
+		{leftU, botV}  //bot left
 	};
 
 	//ONLY CHANGES TEX COORD FROM EACH VERTEX

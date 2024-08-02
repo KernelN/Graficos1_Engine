@@ -4,7 +4,7 @@
 #include "CollisionManager.h"
 #include <iostream>
 
-TileMap::TileMap() 
+TileMap::TileMap()
 {
 	bpp = -1;
 
@@ -102,7 +102,7 @@ bool TileMap::importTileMap(std::string filePath) {
 	tinyxml2::XMLElement* mapNode = tilemap.FirstChildElement("map");
 	if (mapNode == nullptr)
 		return false;
-	
+
 	setDimensions(mapNode->FloatAttribute("width"), mapNode->FloatAttribute("height"));				// Get width and heigth for
 	setTileDimensions(mapNode->FloatAttribute("tilewidth"), mapNode->FloatAttribute("tileheight")); // the map and the tiles
 
@@ -118,14 +118,14 @@ bool TileMap::importTileMap(std::string filePath) {
 	tinyxml2::XMLElement* pTilesheet = tilesheet.FirstChildElement("tileset");
 	if (pTilesheet == NULL)
 		return false;
-	
+
 	_imagePath = "res/tilemap/";
 	_imagePath += pTilesheet->FirstChildElement("image")->Attribute("source");			// Loading Textures
 	setTexture(_imagePath); //
-	
+
 	// Save the Tiles in the TileMap  and set it's position
-	float topLeft[2] = 
-	{ -(_tileWidth * _width) / 2.0f, 
+	float topLeft[2] =
+	{ -(_tileWidth * _width) / 2.0f,
 		(_tileHeight * _height) / 2.0f };
 	float tileX = 0.0f, tileY = 0.0f;
 	int _id = 0;
@@ -142,7 +142,7 @@ bool TileMap::importTileMap(std::string filePath) {
 		}
 		tileX = 0;
 		tileY += _tileHeight;
-	}	
+	}
 
 	// Loading Layer element
 	tinyxml2::XMLElement* pLayer = mapNode->FirstChildElement("layer");
@@ -154,9 +154,8 @@ bool TileMap::importTileMap(std::string filePath) {
 	if (pTilesetData == NULL)
 		return false;
 
-	tinyxml2::XMLElement* pTile = pTilesetData->FirstChildElement("tile");
 	tinyxml2::XMLElement* pTileData;
-	
+
 	unsigned int tileID = 0;
 	int sheetTileCount = pTilesheet->IntAttribute("tilecount");
 	int sheetImgSize[2] = { _imageWidth, _imageHeight };
@@ -164,53 +163,7 @@ bool TileMap::importTileMap(std::string filePath) {
 	int sheetColumns = pTilesheet->IntAttribute("columns");
 	float sheetRows = sheetTileCount / (float)sheetColumns;
 	float tileUVSize[2] = { 1.0f / sheetColumns, 1.0f / sheetRows };
-	while (pTile) 
-	{
-		pTileData = pTilesheet->FirstChildElement("tile");
-		unsigned int gid = pTile->IntAttribute("gid") - 1; //somewhy gids are offset by 1
-
-		unsigned int i = 0;
-		while (pTileData && i <= gid)
-		{
-			i = pTileData->IntAttribute("id");
-			if (i == gid)
-			{
-				tinyxml2::XMLElement* pProperty = pTileData->FirstChildElement("properties")->FirstChildElement("property");
-				std::string propertyName = pProperty->Attribute("value");
-
-				//Set gid
-				tiles[tileID].setGid(gid);
-
-				//set walkable
-				tiles[tileID].walkability(propertyName != "false");
-
-				//set sprite
-				//tengo que:
-				//gettear imgSize
-				//gettear spriteSize (tileWidth y tileHeight)
-				//gettear gid
-				//ver donde esta en X e Y
-				//(lease, dividir gid por tilesheet columns para Y y restarle columns...
-				//(por alguna razon lee de abajo para arriba)
-				int y = sheetColumns - std::ceil(gid / sheetColumns); //round up
-				//... y modulo gid por columns para X)
-				int x = gid % sheetColumns;
-				//calcular uv left bot (x/columnas, y/filas)
-				float uv[2] = { x / (float)sheetColumns, y/sheetRows };
-				tiles[tileID].SetSprite(textureID, sheetImgSize,
-										tileSpriteSize, uv, tileUVSize);
-				break;
-			}
-			else
-			{
-				pTileData = pTileData->NextSiblingElement("tile");
-				continue;
-			}
-		}
-
-		pTile = pTile->NextSiblingElement("tile");
-		tileID++;
-	}
+	int tileCount = pTilesheet->IntAttribute("tilecount");
 
 	int layerCount = 0;
 	while (pLayer) {
@@ -228,18 +181,68 @@ bool TileMap::importTileMap(std::string filePath) {
 			_tileMapGrid.push_back(tileMap);
 		}
 
-		while (pTilesetData)
-		{
-			std::vector<int> tileGids;
 
-			pTile = pTilesetData->FirstChildElement("tile");
-			while (pTile)
+		tinyxml2::XMLElement* pTile = pTilesetData->FirstChildElement("tile");
+		while (pTile)
+		{
+			pTileData = pTilesheet->FirstChildElement("tile");
+			unsigned int gid = pTile->IntAttribute("gid") - 1; //somewhy gids are offset by 1
+
+			int tileGetTries = 0;
+			while (pTile && gid > tileCount && tileGetTries <= _width * _height)
 			{
-				unsigned int gid = std::atoi(pTile->Attribute("gid")); // tile's sheet id is saved
-				tileGids.push_back(gid);
-				pTile = pTile->NextSiblingElement("tile");
+				pTile->NextSiblingElement("tile");
+				gid = pTile->IntAttribute("gid") - 1;
+				tileGetTries++;
 			}
 
+			if (gid > tileCount) break;
+
+			unsigned int i = 0;
+			while (pTileData && i <= gid)
+			{
+				i = pTileData->IntAttribute("id");
+				if (i == gid)
+				{
+					tinyxml2::XMLElement* pProperty = pTileData->FirstChildElement("properties")->FirstChildElement("property");
+					std::string propertyName = pProperty->Attribute("value");
+
+					//Set gid
+					tiles[tileID].setGid(gid);
+
+					//set walkable
+					tiles[tileID].walkability(propertyName != "false");
+
+					//set sprite
+					//tengo que:
+					//gettear imgSize
+					//gettear spriteSize (tileWidth y tileHeight)
+					//gettear gid
+					//ver donde esta en X e Y
+					//(lease, dividir gid por tilesheet columns para Y y restarle columns...
+					//(por alguna razon lee de abajo para arriba)
+					int y = sheetColumns - std::ceil(gid / sheetColumns); //round up
+					//... y modulo gid por columns para X)
+					int x = gid % sheetColumns;
+					//calcular uv left bot (x/columnas, y/filas)
+					float uv[2] = { x / (float)sheetColumns, y / sheetRows };
+					tiles[tileID].SetSprite(textureID, sheetImgSize,
+						tileSpriteSize, uv, tileUVSize);
+					break;
+				}
+				else
+				{
+					pTileData = pTileData->NextSiblingElement("tile");
+					continue;
+				}
+			}
+
+			pTile = pTile->NextSiblingElement("tile");
+			tileID++;
+		}
+
+		while (pTilesetData)
+		{
 			int id = 0; //Don't forget, tile 0 is top left, last one is bottom right
 			for (int x = 0; x < _width; x++)
 			{
@@ -327,7 +330,7 @@ void TileMap::checkCollision(Entity2D* object) {
 				if (tile->isWalkable()) continue;
 
 				tileColliding = CollisionManager::CheckCollision(tile, object);
-				
+
 				if (!tileColliding) continue;
 
 				object->UndoTranslation();
@@ -340,26 +343,28 @@ void TileMap::scaleTiles(float factor)
 {
 	localScale *= factor;
 
-	float scaleMod = .125f; //weird const I found to avoid huge void between scaled tiles
-	float scaledTileWidth = _tileWidth * localScale * scaleMod;
-	float scaledTileHeight = _tileHeight * localScale * scaleMod;
-	float topLeft[2] =  { -(scaledTileWidth * _width) / 2.0f,
+	float scaledTileWidth = _tileWidth * localScale;
+	float scaledTileHeight = _tileHeight * localScale;
+	float topLeft[2] = { -(scaledTileWidth * _width) / 2.0f,
 								(scaledTileHeight * _height) / 2.0f };
 	float tileX = 0.0f, tileY = 0.0f;
 
 	for (int i = 0; i < _tileMapGrid.size(); i++)
+	{
 		for (int y = 0; y < _height; y++)
 		{
 			for (int x = 0; x < _width; x++)
 			{
 				_tileMapGrid[i][y][x].SetTranslation(topLeft[0] + tileX,
-														topLeft[1] - tileY);
+					topLeft[1] - tileY);
 				_tileMapGrid[i][y][x].Scale(factor, factor);
 				tileX += scaledTileWidth;
 			}
 			tileX = 0;
 			tileY += scaledTileHeight;
 		}
+		tileY = 0;
+	}
 
 	//Update real distance in X Y between tiles
 	Vector2 tile1Pos = _tileMapGrid[0][0][0].GetTranslation();
@@ -367,8 +372,8 @@ void TileMap::scaleTiles(float factor)
 	_scaledTileWidth = tile1Pos.x - tile2Pos.x;
 	_scaledTileHeight = tile1Pos.y - tile2Pos.y;
 
-	if(_scaledTileWidth < 0) _scaledTileWidth *= -1;
-	if(_scaledTileHeight < 0) _scaledTileHeight *= -1;
+	if (_scaledTileWidth < 0) _scaledTileWidth *= -1;
+	if (_scaledTileHeight < 0) _scaledTileHeight *= -1;
 }
 
 void TileMap::translateTiles(float x, float y)
@@ -386,9 +391,9 @@ Vector2 TileMap::getConvertedPos(float x, float y)
 {
 	//Reminder, tile 0 is top left, last one is bottom right
 	Vector2 pos;
-	
+
 	//0,0 is top left, so offset pos by half grid
-	pos.x = (_width / 2.0f) * _scaledTileWidth + x;	
+	pos.x = (_width / 2.0f) * _scaledTileWidth + x;
 	pos.y = (_height / 2.0f) * _scaledTileHeight - y; //y is inverted in the tilemap
 	return pos;
 }

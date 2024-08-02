@@ -38,6 +38,9 @@ private:
 	
 	float _tileWidth;
 	float _tileHeight;
+	
+	float _scaledTileWidth;
+	float _scaledTileHeight;
 
 	unsigned int textureID;
 	unsigned int rendererID;

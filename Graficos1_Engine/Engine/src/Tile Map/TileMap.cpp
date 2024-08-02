@@ -41,6 +41,7 @@ void TileMap::setMapTileId(int layer, unsigned int uiCol, unsigned int uiRow, un
 	_tileMapGrid[layer][uiCol][uiRow] = tile(uiId);
 }
 
+
 void TileMap::setTile(const Tile& rkTile)
 {
 	tiles.push_back(rkTile);
@@ -181,10 +182,7 @@ bool TileMap::importTileMap(std::string filePath) {
 				tiles[tileID].setGid(gid);
 
 				//set walkable
-				if (propertyName == "false")
-					tiles[tileID].walkability(false);
-				else
-					tiles[tileID].walkability(true);
+				tiles[tileID].walkability(propertyName != "false");
 
 				//set sprite
 				//tengo que:
@@ -242,10 +240,12 @@ bool TileMap::importTileMap(std::string filePath) {
 				pTile = pTile->NextSiblingElement("tile");
 			}
 
-			int id = 0;
-			for (int y = 0; y < _height; y++) {
-				for (int x = 0; x < _width; x++) {
-					setMapTileId(layerCount, y, x, id);
+			int id = 0; //Don't forget, tile 0 is top left, last one is bottom right
+			for (int x = 0; x < _width; x++)
+			{
+				for (int y = 0; y < _height; y++)
+				{
+					setMapTileId(layerCount, x, y, id);
 					id++;
 				}
 			}
@@ -264,23 +264,39 @@ void TileMap::checkCollision(Entity2D* object) {
 
 	Vector2 convertedPos = getConvertedPos(object->GetTranslation().x, object->GetTranslation().y);
 
-	int left_tile = convertedPos.x / _tileWidth;
-	int right_tile = (convertedPos.x + object->GetScale().x) / _tileWidth;
+	int left_tile = (convertedPos.x - object->GetScale().x) / _scaledTileWidth;
+	int right_tile = (convertedPos.x + object->GetScale().x) / _scaledTileWidth;
 
-	int top_tile = (convertedPos.y / _tileHeight) * -1;
-	int bottom_tile = ((convertedPos.y - object->GetScale().y) / _tileHeight) * -1; // Se resta porque el eje Y crece hacia arriba
+	int top_tile = (convertedPos.y - object->GetScale().y) / _scaledTileHeight;
+	int bottom_tile = (convertedPos.y + object->GetScale().y) / _scaledTileHeight;
 
 	if (left_tile < 0)
-		left_tile = 0;
+	{
+		//left_tile = 0;
+		object->UndoTranslation();
+		return;
+	}
 
 	if (right_tile >= _width)
-		right_tile = _width - 1;
+	{
+		//right_tile = _width - 1;
+		object->UndoTranslation();
+		return;
+	}
 
 	if (top_tile < 0)
-		top_tile = 0;
+	{
+		//top_tile = 0;
+		object->UndoTranslation();
+		return;
+	}
 
 	if (bottom_tile >= _height)
-		bottom_tile = _height - 1;
+	{
+		//bottom_tile = _height - 1;
+		object->UndoTranslation();
+		return;
+	}
 
 	/*
 	cout << "converted X: " << convertedPosX << endl;
@@ -295,15 +311,19 @@ void TileMap::checkCollision(Entity2D* object) {
 	bool tileColliding;
 	Tile* tile;
 
-	for (int i = left_tile; i <= right_tile; i++) {
-
-		for (int j = top_tile; j <= bottom_tile; j++) {
-
-			for (int k = 0; k < _tileMapGrid.size(); k++) {
+	//tile 0 is top left, last one is bottom right, never forgetti
+	for (int i = left_tile; i <= right_tile; i++)
+	{
+		for (int j = top_tile; j <= bottom_tile; j++)
+		{
+			for (int k = 0; k < _tileMapGrid.size(); k++)
+			{
 				//cout << "caminable " << "[" << k << "]" << "[" << j << "]" << "[" << i << "] : "<< _tileMapGrid[k][j][i].isWalkable() << endl; // true == 1  ; false == 0
 				//cout << true << endl;
 				tile = &_tileMapGrid[k][j][i];
-				
+
+				if (tile == nullptr)
+					continue;
 				if (tile->isWalkable()) continue;
 
 				tileColliding = CollisionManager::CheckCollision(tile, object);
@@ -318,9 +338,9 @@ void TileMap::checkCollision(Entity2D* object) {
 
 void TileMap::scaleTiles(float factor)
 {
-	localScale += factor;
+	localScale *= factor;
 
-	const float scaleMod = .125f; //weird const I found testing
+	float scaleMod = .125f; //weird const I found to avoid huge void between scaled tiles
 	float scaledTileWidth = _tileWidth * localScale * scaleMod;
 	float scaledTileHeight = _tileHeight * localScale * scaleMod;
 	float topLeft[2] =  { -(scaledTileWidth * _width) / 2.0f,
@@ -339,7 +359,16 @@ void TileMap::scaleTiles(float factor)
 			}
 			tileX = 0;
 			tileY += scaledTileHeight;
-		}	
+		}
+
+	//Update real distance in X Y between tiles
+	Vector2 tile1Pos = _tileMapGrid[0][0][0].GetTranslation();
+	Vector2 tile2Pos = _tileMapGrid[0][1][1].GetTranslation();
+	_scaledTileWidth = tile1Pos.x - tile2Pos.x;
+	_scaledTileHeight = tile1Pos.y - tile2Pos.y;
+
+	if(_scaledTileWidth < 0) _scaledTileWidth *= -1;
+	if(_scaledTileHeight < 0) _scaledTileHeight *= -1;
 }
 
 void TileMap::translateTiles(float x, float y)
@@ -355,8 +384,11 @@ void TileMap::translateTiles(float x, float y)
 
 Vector2 TileMap::getConvertedPos(float x, float y)
 {
+	//Reminder, tile 0 is top left, last one is bottom right
 	Vector2 pos;
-	pos.x = x + (_width / 2) * _tileWidth;
-	pos.y = y - (_height / 2) * _tileHeight;
+	
+	//0,0 is top left, so offset pos by half grid
+	pos.x = (_width / 2.0f) * _scaledTileWidth + x;	
+	pos.y = (_height / 2.0f) * _scaledTileHeight - y; //y is inverted in the tilemap
 	return pos;
 }

@@ -28,7 +28,7 @@ Game::Game()
     //player = new Square(s1Colors, true);
     player = new Sprite("res/link_walk.png", 8, 4);
     player->Scale(25, 25);
-    player->Translate(150, 0);
+    player->Translate(0, 0);
 
     //enemy = new Square(s2Colors, true);
     enemy = new Sprite("res/WolfiesGrowl.png", 5, 0);
@@ -114,9 +114,10 @@ void Game::OnLoop()
 
     static_cast<Sprite*>(player)->UpdateFrame();
 
-    player->Translate(0, verticalMove);
-    player->Translate(horizontalMove, 0);
+    player->Translate(horizontalMove, verticalMove);
 
+    tilemap->checkCollision(player);
+    
     // Colisionan player y enemy
     while (CollisionManager::CheckCollision(player, enemy))
     {
